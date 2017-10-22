@@ -21,6 +21,7 @@ sig Event{
 	StartTime: one DateTime,
 	EndTime: one DateTime,
 	ChosenMobility: one Mobility,
+	periodicity : one Int,
 	name: one Str
 }{
 one StartTime
@@ -29,13 +30,6 @@ StartTime.date < EndTime.date
 
 }
 
-// Extension for periodic events
-sig PeriodicEvent extends Event{
-	periodicity : one Int
-}
-{
-	periodicity > 0
-}
 // Extension for customized events
 sig CustomizedEvent extends Event {
 	Duration: one Int
@@ -43,7 +37,7 @@ sig CustomizedEvent extends Event {
 {
 	one Duration
 	Duration > 0
-	Duration <= minus[EndTime.date,StartTime.date] 
+	Duration <= minus[minus[EndTime.date,StartTime.date],ChosenMobility.TravelDuration] 
 }
 
 sig Mobility{
@@ -110,8 +104,8 @@ fact noOverlappingEventInCalendar {
 																	gte[e.StartTime.date, minus[e2.StartTime.date,e2.ChosenMobility.TravelDuration]] and 
 																 	lte[minus[e.StartTime.date,e.ChosenMobility.TravelDuration] ,e2.EndTime.date]
 	no disjoint e1,e2,ce : Calendar.EventList |  e1 != CustomizedEvent and e2 != CustomizedEvent and
-																		 ce = CustomizedEvent and  e1.StartTime.date >= ce.StartTime.date and ce.StartTime.date >= e2.EndTime.date and
-																		 plus[ce.Duration,ce.ChosenMobility.TravelDuration] > minus[e1.StartTime.date,  e2.EndTime.date] 
+																		 ce = CustomizedEvent and e1.StartTime.date > e2.EndTime.date and
+																		 plus[ce.Duration,ce.ChosenMobility.TravelDuration] > minus[minus[e1.StartTime.date,e1.ChosenMobility.TravelDuration],  e2.EndTime.date] 
 }
 fact uniqueMobType {
 	no  m1,m2:  Mobility | m1!=m2 and m1.MType = m2.MType
@@ -119,7 +113,6 @@ fact uniqueMobType {
 
 pred show{
 #User = 1
-#PeriodicEvent = 0
 #Event > 2
 }
-run show for 6 
+run show for 10 
