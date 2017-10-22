@@ -90,23 +90,38 @@ fact uniqueCalender {
 	no disjoint u1,u2:  User | u1.calendar = u2.calendar
 }
 
+// one calendar and preference list for each user
+// No unowned calendar or preference list occur
 fact userCardinality{
-	#User = #Calendar
-	#User = #PreferenceList
+	 #Calendar = #User 
+	 #PreferenceList = #User
 }
 
 fact eachEventIsInCalendar {
 	all e : Event  | e in Calendar.EventList 
 }
+
+// No overlapping event occur 
+// Customized Events are not considered yet
 fact noOverlappingEventInCalendar {
-	no disjoint e, e2 : Calendar.EventList  |  e.StartTime.date >= minus[e2.StartTime.date,e2.ChosenMobility.TravelDuration] and minus[e.StartTime.date,e.ChosenMobility.TravelDuration] < e2.EndTime.date
+	// If the events are not customized, then start time of any event cannot be between start time and end time of any other event
+	no disjoint e, e2 : Calendar.EventList  |  e != CustomizedEvent and e2 != CustomizedEvent and
+																	e.StartTime.date >= minus[e2.StartTime.date,e2.ChosenMobility.TravelDuration] and 
+																 	minus[e.StartTime.date,e.ChosenMobility.TravelDuration] <= e2.EndTime.date
+	
+	/*
+	no disjoint e1,e2,ce: Calendar.EventList  | e1 != CustomizedEvent and e2 != CustomizedEvent and ce = CustomizedEvent and
+																		e1.StartTime.date > e1.EndTime.date and 
+																		plus[ce.ChosenMobility.TravelDuration,ce.Duration] < minus[minus[e1.StartTime.date,e1.ChosenMobility.TravelDuration],e2.EndTime.date]
+	*/
 }
 fact uniqueMobType {
 	no disjoint m1,m2:  Mobility | m1.MType = m2.MType
 }
 pred show{
-#User < 2
-#Mobility < 3
-#CustomizedEvent > 1
+#User = 1 
+#CustomizedEvent = 0
+#PeriodicEvent = 0
+#Event = 3
 }
-run show for 5
+run show for 10
