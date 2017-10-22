@@ -1,7 +1,7 @@
 
 // Boolean type is defined
 // open util/boolean
-open util/integer
+
 
 // Signatures for the overall sysstem
 // All the signatures are defined based on class diagram 
@@ -26,6 +26,7 @@ sig Event{
 one StartTime
 one EndTime
 StartTime.date < EndTime.date
+
 }
 
 // Extension for periodic events
@@ -105,28 +106,20 @@ fact eachEventIsInCalendar {
 // Customized Events are not considered yet
 fact noOverlappingEventInCalendar {
 	// If the events are not customized, then start time of any event cannot be between start time and end time of any other event
-	no e, e2 : Calendar.EventList  | e != e2 and e != CustomizedEvent and e2 != CustomizedEvent and
-																	e.StartTime.date >= minus[e2.StartTime.date,e2.ChosenMobility.TravelDuration] and 
-																 	minus[e.StartTime.date,e.ChosenMobility.TravelDuration] =< e2.EndTime.date
-	
-	/*
-	no disjoint e1,e2,ce: Calendar.EventList  | e1 != CustomizedEvent and e2 != CustomizedEvent and ce = CustomizedEvent and
-																		e1.StartTime.date > e1.EndTime.date and 
-																		plus[ce.ChosenMobility.TravelDuration,ce.Duration] < minus[minus[e1.StartTime.date,e1.ChosenMobility.TravelDuration],e2.EndTime.date]
-	*/
+ 	no disjoint e, e2 : Calendar.EventList  | e != CustomizedEvent and e2 != CustomizedEvent and
+																	gte[e.StartTime.date, minus[e2.StartTime.date,e2.ChosenMobility.TravelDuration]] and 
+																 	lte[minus[e.StartTime.date,e.ChosenMobility.TravelDuration] ,e2.EndTime.date]
+	no disjoint e1,e2,ce : Calendar.EventList |  e1 != CustomizedEvent and e2 != CustomizedEvent and
+																		 ce = CustomizedEvent and  e1.StartTime.date >= ce.StartTime.date and ce.StartTime.date >= e2.EndTime.date and
+																		 plus[ce.Duration,ce.ChosenMobility.TravelDuration] > minus[e1.StartTime.date,  e2.EndTime.date] 
 }
 fact uniqueMobType {
-	no disjoint m1,m2:  Mobility | m1.MType = m2.MType
-}
-
-fact StartEndValBoundary {
-	all e: Event | e.StartTime.date > 1000 and e.EndTime.date > 1000
+	no  m1,m2:  Mobility | m1!=m2 and m1.MType = m2.MType
 }
 
 pred show{
-#User = 1 
-#CustomizedEvent = 0
+#User = 1
 #PeriodicEvent = 0
-#Event = 2
+#Event > 2
 }
-run show for 5
+run show for 6 
