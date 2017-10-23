@@ -75,9 +75,6 @@ fact UserNameUnique{
 	no disjoint u1,u2:User|u1.username&u2.username!=none
 }
 
-fact passwordUnique{
-	no disjoint u1,u2:User|u1.password&u2.password!=none
-}
 
 
 --Each User has only one Calendar and one PreferenceList
