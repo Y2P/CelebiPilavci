@@ -3,7 +3,7 @@
 // open util/boolean
 
 
-// Signatures for the overall sysstem
+//********************  Signatures for the overall system *************************//
 // All the signatures are defined based on class diagram 
 
 open util/natural
@@ -35,18 +35,30 @@ sig CustomizedEvent extends Event {
 }
 {
 	one Duration
-
+	gt[ Duration,Zero]
 	lte[Duration , sub[sub[EndTime.date,StartTime.date],ChosenMobility.TravelDuration] ]
 }
 
+// Signatures for related Mobility Options
+
+abstract sig mobilityStatus {}
+one sig Activated extends mobilityStatus{}
+one sig Deactivated extends mobilityStatus{}
+one sig Car,Tram,Train,Metro,Bus,Bike,Walk extends Mobility{}
+
 sig Mobility{
+	restrictedStartTime: one Natural,
+	restrictedEndTime: one Natural,
+	status: one mobilityStatus,	
+	durationLimit: lone Natural,
 	TravelDuration: one Natural,
 	MType: one Str
 }
 {
-	//gt[TravelDuration , 0]
+	gt[restrictedEndTime,restrictedStartTime]
 }
 
+// Signature for Calendar
 sig Calendar {
 	EventList: some Event,
 	MobilityList = EventList.ChosenMobility
@@ -54,6 +66,7 @@ sig Calendar {
 	#EventList = #MobilityList
 }
 
+// Signature for User
 sig User {
 	username: one Str,
 	password: one Str,
@@ -68,6 +81,7 @@ sig User {
 	one mlist
 }
 
+// Signatures for related PreferenceList
 sig PreferenceList {
 	MobilityList: some Mobility
 }
@@ -76,6 +90,7 @@ sig Default extends PreferenceList {
 }
 sig CustomizedList extends PreferenceList {}
 
+// *********************  Facts start here *********************** //
 fact uniqueUsername {
 	no disjoint u1,u2:  User | u1.username = u2.username
 }
@@ -111,9 +126,53 @@ fact uniqueMobType {
 	no  m1,m2:  Mobility | m1!=m2 and m1.MType = m2.MType
 }
 
-pred show{
-#User = 1
-#Event > 2
+
+--CHOOSING MOBILITY
+--deactivated Mobility cannot be on the PreferenceList
+fact onlyActiveMobilitiesOnTheList{ all m:Mobility,p:PreferenceList| m in p.MobilityList <=> m.status=Activated }
+ 
+--Mobility that is not on Preference List cannot be chosen
+fact ChosenMobilityMustBeOnPreferenceList{all e:Event,p:PreferenceList|e.ChosenMobility in p.MobilityList}
+
+--Mobility cannot be chosen if the travel time of the event is greater than a given duration Limit
+fact ChosenMobilityMeetsDurationConstraint{all m:Mobility, e:Event|m!=e.ChosenMobility => gt[e.ChosenMobility.TravelDuration,m.durationLimit]}
+
+fact NoTravelDurationIfMobilityIsNotChosen{all m:Mobility, e:Event| lt[m.TravelDuration, Zero] => m!=e.ChosenMobility}
+
+fact DeactivatedIfTravelIsNotInRestrictedTime{
+
+	all m:PreferenceList.MobilityList, e:Event | gt[m.restrictedStartTime ,sub[e.StartTime.date,m.TravelDuration]] or 
+																		lt[m.restrictedEndTime ,e.StartTime.date] <=> m.status = Deactivated
 
 }
-run show for 5 
+
+pred addEvent[c,c':Calendar, e:Event ] {
+	no e:Event | e in c.EventList
+	c'.EventList = c.EventList + e
+}
+pred deleteEvent[c,c':Calendar, e:Event ] {
+	all e:Event | e in c.EventList
+	c'.EventList = c.EventList - e
+}
+pred showAddDelete[c,c':Calendar, e:Event ] {
+	//
+	#User = 1
+	//#Mobility = #PreferenceList.MobilityList
+	#Event > 1
+	//addEvent[c,c',e]
+	deleteEvent[c,c',e]
+	
+}
+--PREDICATES
+--pred IsDateAvailable
+--pred reachable
+--pred removeEvent
+--pred addEvent
+
+pred show{
+#User = 1
+#Event =  2
+#Mobility = #PreferenceList.MobilityList
+}
+//run show for 7 
+run showAddDelete for 20

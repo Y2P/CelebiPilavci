@@ -1,5 +1,4 @@
-open util/integer
-
+open util/natural
 
 sig Str{}
 
