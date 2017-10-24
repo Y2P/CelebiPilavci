@@ -141,9 +141,9 @@ fact NoTravelDurationIfMobilityIsNotChosen{all m:Mobility, e:Event| lt[m.TravelD
 
 fact DeactivatedIfTravelIsNotInRestrictedTime{
 
-	all m:PreferenceList.MobilityList, e:Event | gt[m.restrictedStartTime ,sub[e.StartTime.date,m.TravelDuration]] or 
-																		lt[m.restrictedEndTime ,e.StartTime.date] <=> m.status = Deactivated
-
+	no e : Calendar.EventList , m:e.ChosenMobility | (gte[m.restrictedStartTime, sub[e.StartTime.date,e.ChosenMobility.TravelDuration]] and 
+																 				 lte[m.restrictedStartTime ,e.StartTime.date] ) or gte[m.restrictedEndTime, sub[e.StartTime.date,e.ChosenMobility.TravelDuration]] and 
+																 				 lte[m.restrictedEndTime ,e.StartTime.date]
 }
 
 pred addEvent[c,c':Calendar, e:Event ] {
@@ -157,10 +157,10 @@ pred deleteEvent[c,c':Calendar, e:Event ] {
 pred showAddDelete[c,c':Calendar, e:Event ] {
 	//
 	#User = 1
-	//#Mobility = #PreferenceList.MobilityList
-	#Event > 1
-	//addEvent[c,c',e]
-	deleteEvent[c,c',e]
+	#Mobility = #PreferenceList.MobilityList
+	#Event > 3
+    addEvent[c,c',e]
+	//deleteEvent[c,c',e]
 	
 }
 --PREDICATES
@@ -175,4 +175,4 @@ pred show{
 #Mobility = #PreferenceList.MobilityList
 }
 //run show for 7 
-run showAddDelete for 20
+run showAddDelete for 10
