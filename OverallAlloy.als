@@ -5,11 +5,14 @@
 
 //********************  Signatures for the overall system *************************//
 // All the signatures are defined based on class diagram 
-
+// For the timestamps and duration operations, addition/subtraction and all types of comparisons
+// are needed. Therefore, "Natural" type is employed for this purpose in this alloy model. 
 open util/natural
 open util/integer
+// Since an order is needed for user preference list of mobility options, Priority signature is used
+// with ordering utilization
 open util/ordering[Priority] as po
-// Necessary Data structures for string and datetime 
+// Necessary Data structures for string 
 sig Str{} 
 
 // Signature for events
@@ -23,8 +26,8 @@ sig Event{
 }{
 one StartTime
 one EndTime
+// Start time is always before end time
 lt[StartTime , EndTime]
-
 }
 abstract sig PeriodicityStatus{ }
 lone sig OneTime,Daily,Weekly,Monthly extends PeriodicityStatus{ }
@@ -35,6 +38,7 @@ sig CustomizedEvent extends Event {
 }
 {
 	one Duration
+	// Duration for customized event is always greater than zero and less than or equal to time between start and endtime
 	gt[ Duration,Zero]
     lte[Duration , sub[sub[EndTime,StartTime],ChosenMobility.TravelDuration] ]
 }
@@ -48,9 +52,11 @@ one sig Car,Tram,Train,Metro,Bus,Bike,Walk extends Mobility{}
 sig Priority{}
 
 abstract sig Mobility{
+	// No mobility can be used in between restrictedStartTime and restrictedEndTime  
 	restrictedStartTime: one Natural,
 	restrictedEndTime: one Natural,
 	status: one mobilityStatus,	
+	// Maximum allowed duration by user 
 	durationLimit: lone Natural,
 	TravelDuration: one Natural,
 	priority:one Priority
@@ -82,12 +88,11 @@ sig User {
 
 // Signatures for related PreferenceList
 sig PreferenceList {
+	listName : one Str,
 	MobilityList: some Mobility
 }
-
-sig Default extends PreferenceList {
-	listName : one Str
-}
+// Default is predefined lists that are focused on particular subjects such as footprint minimization, cost minimization etc.
+sig Default extends PreferenceList {}
 sig CustomizedList extends PreferenceList {}
 
 // *********************  Facts start here *********************** //
@@ -107,7 +112,6 @@ fact userCardinality{
 }
 
 // Choose top mobility option in user preferences
-
 fact chooseTopMobilityOption {
 	all  u:User ,
 		  m : u.calendar.EventList.ChosenMobility | 
@@ -120,18 +124,13 @@ fact NoSamePriorityInPreferenceList {
 fact NoDeactiveMobilityOptionInPreferenceList {
 	no u:User, m:Mobility | m.status=Deactivated and m in u.mlist.MobilityList
 }
-/*
-fact eachEventIsInCalendar {
-	all e : Event  | e in Calendar.EventList 
-}*/
 // No overlapping event occur 
-// Customized Events are not considered yet
 fact noOverlappingEventInCalendar {
 	// If the events are not customized, then start time of any event cannot be between start time and end time of any other event
  	no disjoint e, e2 : Calendar.EventList  | e != CustomizedEvent and e2 != CustomizedEvent and
 																	gte[e.StartTime, sub[e2.StartTime,e2.ChosenMobility.TravelDuration]] and 
 																 	lte[sub[e.StartTime,e.ChosenMobility.TravelDuration] ,e2.EndTime]
-	
+	// If the events are customized, there should be enough time for customized event duration between two events
 	no disjoint e1,e2,ce : Calendar.EventList |  e1 != CustomizedEvent and e2 != CustomizedEvent and
 																		 ce = CustomizedEvent and gt[e1.StartTime , e2.EndTime] and
 																		 lte[ce.StartTime, e2.EndTime] and gte[ce.EndTime , e2.EndTime] and
@@ -169,7 +168,8 @@ pred RegisterNewUser[u,up,unew:User] {
 pred editEvent [c,cp:Calendar,e :c.EventList, 
 		nStartTime: Natural,
 		nEndTime: Natural] {
-		
+	
+// Edit an event by deleting previous event and adding altered one	
 	all ep:Event | ep.StartTime = nStartTime and	ep.EndTime = nEndTime
 	and deleteEvent[c,cp,e] and addEvent[c,cp,ep] 
 	
@@ -201,15 +201,19 @@ assert AddDeleteUndo {
 }
 
 assert AddTwoEventInSameTimeInterval{
+// Same event cannot be added two times
 	no e,ep: Event,u:User, c,c':u.calendar | ep=e and e not in c.EventList and addEvent[c,c',e] and  addEvent[c,c',ep]
 
 }
 
 assert EditEvent {
+// Compare two calendar after edit on a event
+	
 	all u:User,cp,c: u.calendar, e:c.EventList ,nStartTime:Natural,
 		nEndTime: Natural | editEvent [c,cp,e ,nStartTime,
 		nEndTime	]  implies c != cp
 }
+
 --PREDICATES
 --pred reachable
 --pred IsCalendarFeasible
@@ -223,5 +227,7 @@ Walk.status = Deactivated
 
 }
 run show for 7
-//check AddDeleteUndo
-//check EditEvent
+check AddDeleteUndo
+check EditEvent
+check AddTwoEventInSameTimeInterval
+check RegisterUser
