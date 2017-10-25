@@ -56,7 +56,6 @@ abstract sig Mobility{
 	priority:one Priority
 }
 {
-	lte[TravelDuration,durationLimit]
 	gt[restrictedEndTime,restrictedStartTime]
 }
 
@@ -147,11 +146,7 @@ fact onlyActiveMobilitiesOnTheList{ all m:Mobility,p:PreferenceList| m in p.Mobi
 --Mobility that is not on Preference List cannot be chosen
 fact ChosenMobilityMustBeOnPreferenceList{all e:Event,p:PreferenceList|e.ChosenMobility in p.MobilityList}
 
---Mobility cannot be chosen if the travel time of the event is greater than a given duration Limit
-fact ChosenMobilityMeetsDurationConstraint{all m:Mobility, e:Event|m!=e.ChosenMobility => gt[e.ChosenMobility.TravelDuration,m.durationLimit]}
-
 fact NoTravelDurationIfMobilityIsNotChosen{all m:Mobility, e:Event| lt[m.TravelDuration, Zero] => m!=e.ChosenMobility}
-
 
 fact DeactivatedIfTravelInRestrictedTime{
 
@@ -160,6 +155,14 @@ fact DeactivatedIfTravelInRestrictedTime{
 																 				 lte[m.restrictedEndTime ,e.StartTime] implies m.status = Deactivated
 }
 
+// If Travel duration is more than duration limit, the mobility is deactivated
+// For instance, if it lasts 1 hour to walk somewhere then,
+// however the limit for walking is 30 minutes
+// walk option is deactivated
+fact DeactivatedIfTravelDurationIsMoreThanLimit 
+{
+	all m:Mobility | gt[m.TravelDuration, m.durationLimit]
+}
 pred RegisterNewUser[u,up,unew:User] {
 	up = u + unew
 }
