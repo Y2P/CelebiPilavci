@@ -8,9 +8,9 @@
 
 open util/natural
 open util/integer
+open util/ordering[Priority] as po
 // Necessary Data structures for string and datetime 
-sig Str{}
-
+sig Str{} 
 
 // Signature for events
 sig Event{
@@ -36,7 +36,7 @@ sig CustomizedEvent extends Event {
 {
 	one Duration
 	gt[ Duration,Zero]
-//	lte[Duration , sub[sub[EndTime,StartTime],ChosenMobility.TravelDuration] ]
+    lte[Duration , sub[sub[EndTime,StartTime],ChosenMobility.TravelDuration] ]
 }
 
 // Signatures for related Mobility Options
@@ -45,6 +45,7 @@ abstract sig mobilityStatus {}
 one sig Activated extends mobilityStatus{}
 one sig Deactivated extends mobilityStatus{}
 one sig Car,Tram,Train,Metro,Bus,Bike,Walk extends Mobility{}
+sig Priority{}
 
 abstract sig Mobility{
 	restrictedStartTime: one Natural,
@@ -52,9 +53,10 @@ abstract sig Mobility{
 	status: one mobilityStatus,	
 	durationLimit: lone Natural,
 	TravelDuration: one Natural,
-	Priority: Int
+	priority:one Priority
 }
 {
+	lte[TravelDuration,durationLimit]
 	gt[restrictedEndTime,restrictedStartTime]
 }
 
@@ -106,20 +108,23 @@ fact userCardinality{
 }
 
 // Choose top mobility option in user preferences
-/*
+
 fact chooseTopMobilityOption {
 	all  u:User ,
-		  m : u.calendar.EventList.ChosenMobility,
-		  mp: u.mlist.MobilityList | 
-		  mp.Priority = min[u.mlist.MobilityList.Priority] 
-		  implies m = mp										 
-
+		  m : u.calendar.EventList.ChosenMobility | 
+		  m.priority = min[u.mlist.MobilityList.priority]		 
 }
-*/
+fact NoSamePriorityInPreferenceList {
+	no u:User,m,mp:u.mlist.MobilityList | m != mp and m.priority = mp.priority
+}
 
+fact NoDeactiveMobilityOptionInPreferenceList {
+	no u:User, m:Mobility | m.status=Deactivated and m in u.mlist.MobilityList
+}
+/*
 fact eachEventIsInCalendar {
 	all e : Event  | e in Calendar.EventList 
-}
+}*/
 // No overlapping event occur 
 // Customized Events are not considered yet
 fact noOverlappingEventInCalendar {
@@ -147,14 +152,13 @@ fact ChosenMobilityMeetsDurationConstraint{all m:Mobility, e:Event|m!=e.ChosenMo
 
 fact NoTravelDurationIfMobilityIsNotChosen{all m:Mobility, e:Event| lt[m.TravelDuration, Zero] => m!=e.ChosenMobility}
 
-/*
-fact DeactivatedIfTravelIsNotInRestrictedTime{
 
-	no e : Calendar.EventList , m:e.ChosenMobility | (gte[m.restrictedStartTime, sub[e.StartTime,e.ChosenMobility.TravelDuration]] and 
+fact DeactivatedIfTravelInRestrictedTime{
+
+	all u:User,e : u.calendar.EventList , m:u.mlist.MobilityList | (gte[m.restrictedStartTime, sub[e.StartTime,e.ChosenMobility.TravelDuration]] and 
 																 				 lte[m.restrictedStartTime ,e.StartTime] ) or gte[m.restrictedEndTime, sub[e.StartTime,e.ChosenMobility.TravelDuration]] and 
-																 				 lte[m.restrictedEndTime ,e.StartTime]
+																 				 lte[m.restrictedEndTime ,e.StartTime] implies m.status = Deactivated
 }
-*/
 
 pred RegisterNewUser[u,up,unew:User] {
 	up = u + unew
@@ -203,17 +207,17 @@ assert EditEvent {
 		nEndTime: Natural | editEvent [c,cp,e ,nStartTime,
 		nEndTime	]  implies c != cp
 }
--- TODO
--- Weather eklencek
--- Priority 
 --PREDICATES
 --pred reachable
 --pred IsCalendarFeasible
 
 pred show{
 #User = 1
-#Event >2 
-#CustomizedEvent > 0 
+#Event  = 1
+// For Instance, due to weather , bike and walk is deactivated
+Bike.status = Deactivated
+Walk.status = Deactivated
+
 }
 run show for 7
 //check AddDeleteUndo
