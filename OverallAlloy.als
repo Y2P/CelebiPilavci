@@ -106,9 +106,10 @@ fact uniqueCalender {
 
 // one calendar and preference list for each user
 // No unowned calendar or preference list occur
-fact userCardinality{
+fact Cardinality{
 	 #Calendar = #User 
 	 #PreferenceList = #User
+        #Event=#PeriodicityStatus
 }
 
 // Choose top mobility option in user preferences
