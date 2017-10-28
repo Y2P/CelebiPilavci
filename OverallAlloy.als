@@ -59,7 +59,7 @@ abstract sig Mobility{
 	// Maximum allowed duration by user 
 	durationLimit: lone Natural,
 	TravelDuration: one Natural,
-	priority:one Priority
+
 }
 {
 	gt[restrictedEndTime,restrictedStartTime]
@@ -89,7 +89,14 @@ sig User {
 // Signatures for related PreferenceList
 sig PreferenceList {
 	listName : one Str,
-	MobilityList: some Mobility
+	MobilityList: set Mobility,
+	priorityList:set Priority,
+	mplist : ( MobilityList -> one Priority )
+}{
+	#priorityList > 0
+	#MobilityList > 0
+	#priorityList = # MobilityList
+	no disjoint m1,m2: MobilityList | mplist[m1] =mplist[m2]
 }
 // Default is predefined lists that are focused on particular subjects such as footprint minimization, cost minimization etc.
 sig Default extends PreferenceList {}
@@ -100,28 +107,30 @@ fact uniqueUsername {
 	no disjoint u1,u2:  User | u1.username = u2.username
 }
 
+fact uniquePreferenceList {
+	no disjoint u1,u2:  User | u1.mlist = u2.mlist
+}
 fact uniqueCalender {
 	no disjoint u1,u2:  User | u1.calendar = u2.calendar
 }
-
+fact uniqueEvents {
+	no disjoint c1,c2: Calendar,e:Event | e in c1.EventList and e in c2.EventList
+}
 // one calendar and preference list for each user
 // No unowned calendar or preference list occur
-fact Cardinality{
+fact Cardinality {
+
 	 #Calendar = #User 
 	 #PreferenceList = #User
-        #Event=#PeriodicityStatus
+     #Event=#PeriodicityStatus
 }
 
 // Choose top mobility option in user preferences
 fact chooseTopMobilityOption {
 	all  u:User ,
-		  m : u.calendar.EventList.ChosenMobility | 
-		  m.priority = min[u.mlist.MobilityList.priority]		 
+		  m : u.calendar.EventList.ChosenMobility|
+		  m = ((u.mlist).mplist).(min[u.mlist.priorityList]) 
 }
-fact NoSamePriorityInPreferenceList {
-	no u:User,m,mp:u.mlist.MobilityList | m != mp and m.priority = mp.priority
-}
-
 fact NoDeactiveMobilityOptionInPreferenceList {
 	no u:User, m:Mobility | m.status=Deactivated and m in u.mlist.MobilityList
 }
@@ -136,7 +145,16 @@ fact noOverlappingEventInCalendar {
 																		 ce = CustomizedEvent and gt[e1.StartTime , e2.EndTime] and
 																		 lte[ce.StartTime, e2.EndTime] and gte[ce.EndTime , e2.EndTime] and
 																		 gt[add[ce.Duration,ce.ChosenMobility.TravelDuration] , sub[sub[e1.StartTime,e1.ChosenMobility.TravelDuration],  e2.EndTime] ]
-}
+	
+	no disjoint e1,ce: Calendar.EventList | (e1 != CustomizedEvent and ce = CustomizedEvent) and
+																  (lt[e1.StartTime,ce.StartTime] and gt[add[add[sub[e1.EndTime,e1.StartTime],ce.Duration],ce.ChosenMobility.TravelDuration], sub[ce.EndTime,e1.StartTime]]) or
+																  (lt[ce.StartTime,e1.StartTime] and gt[add[add[sub[e1.EndTime,e1.StartTime],ce.Duration],e1.ChosenMobility.TravelDuration], sub[e1.EndTime,ce.StartTime]])
+	no disjoint ce1,ce2: Calendar.EventList | (ce1 = CustomizedEvent and ce2 = CustomizedEvent) and
+																  (lt[ce1.StartTime,ce2.StartTime] and gt[add[add[ce1.Duration,ce2.Duration],ce2.ChosenMobility.TravelDuration], sub[ce2.EndTime,ce1.StartTime]]) 
+																  
+
+
+}																  
 
 
 --CHOOSING MOBILITY
@@ -148,8 +166,7 @@ fact ChosenMobilityMustBeOnPreferenceList{all e:Event,p:PreferenceList|e.ChosenM
 
 fact NoTravelDurationIfMobilityIsNotChosen{all m:Mobility, e:Event| lt[m.TravelDuration, Zero] => m!=e.ChosenMobility}
 
-fact DeactivatedIfTravelInRestrictedTime{
-
+fact DeactivatedIfTravelInRestrictedTime {
 	all u:User,e : u.calendar.EventList , m:u.mlist.MobilityList | (gte[m.restrictedStartTime, sub[e.StartTime,e.ChosenMobility.TravelDuration]] and 
 																 				 lte[m.restrictedStartTime ,e.StartTime] ) or gte[m.restrictedEndTime, sub[e.StartTime,e.ChosenMobility.TravelDuration]] and 
 																 				 lte[m.restrictedEndTime ,e.StartTime] implies m.status = Deactivated
@@ -161,7 +178,7 @@ fact DeactivatedIfTravelInRestrictedTime{
 // walk option is deactivated
 fact DeactivatedIfTravelDurationIsMoreThanLimit 
 {
-	all m:Mobility | gt[m.TravelDuration, m.durationLimit]
+	all m:Mobility | gt[m.TravelDuration, m.durationLimit] => m.status = Deactivated
 }
 pred RegisterNewUser[u,up,unew:User] {
 	up = u + unew
@@ -209,7 +226,6 @@ assert AddTwoEventInSameTimeInterval{
 
 assert EditEvent {
 // Compare two calendar after edit on a event
-	
 	all u:User,cp,c: u.calendar, e:c.EventList ,nStartTime:Natural,
 		nEndTime: Natural | editEvent [c,cp,e ,nStartTime,
 		nEndTime	]  implies c != cp
@@ -220,12 +236,10 @@ assert EditEvent {
 --pred IsCalendarFeasible
 
 pred show{
-#User = 1
-#Event  = 1
 // For Instance, due to weather , bike and walk is deactivated
-Bike.status = Deactivated
-Walk.status = Deactivated
-
+Bike.status = Activated
+Walk.status = Activated
+#User =3 
 }
 run show for 7
 check AddDeleteUndo
