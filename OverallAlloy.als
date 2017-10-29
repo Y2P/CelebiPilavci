@@ -1,13 +1,7 @@
-
-// Boolean type is defined
-// open util/boolean
-
-
 //********************  Signatures for the overall system *************************//
 // All the signatures are defined based on class diagram 
 // For the timestamps and duration operations, addition/subtraction and all types of comparisons
 // are needed. Therefore, "Natural" type is employed for this purpose in this alloy model. 
-open util/natural
 open util/integer
 // Since an order is needed for user preference list of mobility options, Priority signature is used
 // with ordering utilization
@@ -50,7 +44,7 @@ sig CustomizedEvent extends Event {
 abstract sig mobilityStatus {}
 one sig Activated extends mobilityStatus{}
 one sig Deactivated extends mobilityStatus{}
-one sig Car,Tram,Train,Metro,Bus,Bike,Walk extends Mobility{}
+lone sig Car,Tram,Train,Metro,Bus,Bike,Walk extends Mobility{}
 sig Priority{}
 
 abstract sig Mobility{
@@ -143,29 +137,35 @@ fact NoDeactiveMobilityOptionInPreferenceList {
 // No overlapping event occur 
 fact noOverlappingEventInCalendar {
 	// If the events are not customized, then start time of any event cannot be between start time and end time of any other event
-	all e, e2 : Calendar.EventList  | (e != e2  and e != CustomizedEvent and e2 != CustomizedEvent) implies
-													   (e.StartTime != e2.StartTime or e.EndTime != e2.EndTime)
+	all e, e2 : Calendar.EventList  | (e != e2  and e != CustomizedEvent and
+		 e2 != CustomizedEvent) implies
+		(e.StartTime != e2.StartTime or e.EndTime != e2.EndTime)
 
 	all e, e2 : Calendar.EventList  | (e != CustomizedEvent and e2 != CustomizedEvent and
 																	gt[e.StartTime, e2.StartTime] ) implies 
-																 	gte[sub[e.StartTime,e.ChosenMobility.TravelDuration] ,e2.EndTime]
+																 	gte[sub[e.StartTime,e.ChosenMobility.TravelDuration] 
+																	,e2.EndTime]
 	// If one event is customized and others are not, there should be enough time for customized event duration between two events
 	all e1,e2,ce : Calendar.EventList |(  e1 != CustomizedEvent and e2 != CustomizedEvent and
-																		 ce = CustomizedEvent and gt[e1.StartTime , e2.EndTime] and
-																		 lte[ce.StartTime, e1.EndTime] and gte[ce.EndTime , e2.EndTime] ) implies
-																		 lte[add[ce.Duration,ce.ChosenMobility.TravelDuration] , sub[sub[e1.StartTime,e1.ChosenMobility.TravelDuration],  e2.EndTime] ]
+																		 ce = CustomizedEvent and gt[e1.StartTime , e2.EndTime]
+																		 and lte[ce.StartTime, e1.EndTime] and gte[ce.EndTime ,
+																		 e2.EndTime] ) implies lte[add[ce.Duration,
+																		 ce.ChosenMobility.TravelDuration] ,
+																		 sub[sub[e1.StartTime,e1.ChosenMobility.TravelDuration],
+																	     e2.EndTime] ]
 
 
 // If there are one event and one customized event, total duration of both should be less than time between start time of previous one and end time of next one
 	all e1,ce: Calendar.EventList |( (e1 != CustomizedEvent and ce = CustomizedEvent) and 
-																  (lte[e1.StartTime,ce.StartTime] ) ) implies( gt[ce.EndTime,e1.EndTime]  and lte[add[add[sub[e1.EndTime,e1.StartTime],ce.Duration],ce.ChosenMobility.TravelDuration], sub[ce.EndTime,e1.StartTime]]) 
+		(lte[e1.StartTime,ce.StartTime] ) ) implies( gt[ce.EndTime,e1.EndTime]  
+		and lte[add[add[sub[e1.EndTime,e1.StartTime],ce.Duration],ce.ChosenMobility.TravelDuration], sub[ce.EndTime,e1.StartTime]]) 
 	all e1,ce: Calendar.EventList | ((e1 != CustomizedEvent and ce = CustomizedEvent) and 
-																  (lt[ce.StartTime,e1.StartTime] )) implies lte[add[add[sub[e1.EndTime,e1.StartTime],ce.Duration],e1.ChosenMobility.TravelDuration], sub[e1.EndTime,ce.StartTime]] 
+		(lt[ce.StartTime,e1.StartTime] )) implies lte[add[add[sub[e1.EndTime,e1.StartTime],ce.Duration],e1.ChosenMobility.TravelDuration], sub[e1.EndTime,ce.StartTime]] 
 
 
 	// If there are two customized events, total duration of both,total duration of both should be less than time between start time of previous one and end time of next one 
 	all ce1,ce2: Calendar.EventList |(ce1 != ce2 and (ce1 = CustomizedEvent and ce2 = CustomizedEvent) and
-																  lte[ce1.StartTime,ce2.StartTime]) implies lt[add[add[ce1.Duration,ce2.Duration],ce2.ChosenMobility.TravelDuration], sub[ce2.EndTime,ce1.StartTime]]
+		lte[ce1.StartTime,ce2.StartTime]) implies lt[add[add[ce1.Duration,ce2.Duration],ce2.ChosenMobility.TravelDuration], sub[ce2.EndTime,ce1.StartTime]]
 																  
 
 }																  
@@ -173,17 +173,22 @@ fact noOverlappingEventInCalendar {
 
 --CHOOSING MOBILITY
 --deactivated Mobility cannot be on the PreferenceList
-fact onlyActiveMobilitiesOnTheList{ all m:Mobility,p:PreferenceList| m in p.MobilityList <=> m.status=Activated }
+fact onlyActiveMobilitiesOnTheList{ all m:Mobility,p:PreferenceList| 
+														m in p.MobilityList <=> m.status=Activated }
  
 --Mobility that is not on Preference List cannot be chosen
-fact ChosenMobilityMustBeOnPreferenceList{all e:Event,p:PreferenceList|e.ChosenMobility in p.MobilityList}
+fact ChosenMobilityMustBeOnPreferenceList{all e:Event,p:PreferenceList|e.ChosenMobility
+																		 in p.MobilityList}
 
-fact NoTravelDurationIfMobilityIsNotChosen{all m:Mobility, e:Event| lt[m.TravelDuration, 0] => m!=e.ChosenMobility}
+fact NoTravelDurationIfMobilityIsNotChosen{all m:Mobility, e:Event| lt[m.TravelDuration, 0] =>
+																	   m!=e.ChosenMobility}
 
 fact DeactivatedIfTravelInRestrictedTime {
-	all u:User,e : u.calendar.EventList , m:u.mlist.MobilityList | (gte[m.restrictedStartTime, sub[e.StartTime,e.ChosenMobility.TravelDuration]] and 
-																 				 lte[m.restrictedStartTime ,e.StartTime] ) or (gte[m.restrictedEndTime, sub[e.StartTime,e.ChosenMobility.TravelDuration]] and 
-																 				 lte[m.restrictedEndTime ,e.StartTime]) <=> m.status = Deactivated
+	all u:User,e : u.calendar.EventList , m:u.mlist.MobilityList | (gte[m.restrictedStartTime, 
+		sub[e.StartTime,e.ChosenMobility.TravelDuration]] and 
+		lte[m.restrictedStartTime ,e.StartTime] ) or (gte[m.restrictedEndTime,
+	    sub[e.StartTime,e.ChosenMobility.TravelDuration]] and 
+		lte[m.restrictedEndTime ,e.StartTime]) <=> m.status = Deactivated
 }
 
 // If Travel duration is more than duration limit, the mobility is deactivated
@@ -202,7 +207,6 @@ pred editEvent [c,cp:Calendar,e ,ep:Event] {
 	deleteEvent[c,cp,e]
 	addEvent[c,cp,ep]
 // Edit an event by deleting previous event and adding altered one	
-
 }
 
 pred addEvent[c,c':Calendar, e:Event ] { 
@@ -253,7 +257,8 @@ assert MobilityOptionFeasibility {
 											gt[e1.StartTime,e2.StartTime] implies gte[sub[e1.StartTime,e1.ChosenMobility.TravelDuration],e2.EndTime]
 
 	all u:User, c:u.calendar ,e1 ,e2: c.EventList  |e1 != e2 and e1=CustomizedEvent and e2!=CustomizedEvent and
-											gt[e1.StartTime,e2.StartTime] implies gte[sub[e1.EndTime,e2.StartTime] , add[add[sub[e2.EndTime,e2.StartTime],e1.Duration],e1.ChosenMobility.TravelDuration]]
+											gt[e1.StartTime,e2.StartTime] implies gte[sub[e1.EndTime,e2.StartTime] , 
+											add[add[sub[e2.EndTime,e2.StartTime],e1.Duration],e1.ChosenMobility.TravelDuration]]
 	
 	all u:User, c:u.calendar ,e1 ,e2: c.EventList  |e1 != e2 and e1=CustomizedEvent and e2=CustomizedEvent and
 											gt[e1.StartTime,e2.StartTime] implies gte[sub[e1.EndTime,e2.StartTime] , add[add[e2.Duration,e1.Duration],e1.ChosenMobility.TravelDuration]]
@@ -262,7 +267,14 @@ assert MobilityOptionFeasibility {
 --PREDICATES
 --pred reachable
 --pred IsCalendarFeasible
-
+pred show{
+	#User = 1
+	#Event = 3 
+	#CustomizedEvent > 1
+	all e:Event | e in User.calendar.EventList
+	all p:PeriodicityStatus | p in User.calendar.EventList.periodicity
+	all m:Mobility | m.status = Activated 
+}
 pred DeactivateMobilityOptions{
 // For Instance, due to weather , bike and walk is deactivated
 Bike.status = Deactivated
@@ -275,7 +287,7 @@ pred MultipleUsers {
 	#User > 1
 }
 
-
+run show for 7 Int
 run DeactivateMobilityOptions for 7 Int
 run showAddEvent for 7
 run showDeleteEvent for 7
