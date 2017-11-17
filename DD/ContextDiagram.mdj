@@ -4240,26 +4240,6 @@
 			"visibility": "public"
 		},
 		{
-			"_type": "ERDDataModel",
-			"_id": "AAAAAAFfu6YU18Vgf4Y=",
-			"_parent": {
-				"$ref": "AAAAAAFF+h6SjaM2Hec="
-			},
-			"name": "Data Model1",
-			"ownedElements": [
-				{
-					"_type": "ERDDiagram",
-					"_id": "AAAAAAFfu6YU18Vhs7k=",
-					"_parent": {
-						"$ref": "AAAAAAFfu6YU18Vgf4Y="
-					},
-					"name": "ERDDiagram1",
-					"visible": true,
-					"defaultDiagram": false
-				}
-			]
-		},
-		{
 			"_type": "UMLModel",
 			"_id": "AAAAAAFfu6g1GcV3LIc=",
 			"_parent": {
