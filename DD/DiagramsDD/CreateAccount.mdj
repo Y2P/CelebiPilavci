@@ -381,7 +381,7 @@
 													"height": 13,
 													"autoResize": false,
 													"underline": false,
-													"text": "LoginSignupManager",
+													"text": "Register Manager",
 													"horizontalAlignment": 2,
 													"verticalAlignment": 5,
 													"wordWrap": false
@@ -1087,9 +1087,9 @@
 											"showShadow": true,
 											"containerChangeable": false,
 											"containerExtending": false,
-											"left": 88,
+											"left": 86,
 											"top": 216,
-											"width": 105.4599609375,
+											"width": 108,
 											"height": 13,
 											"autoResize": false,
 											"alpha": 2.191044643858839,
@@ -2495,9 +2495,9 @@
 											"showShadow": true,
 											"containerChangeable": false,
 											"containerExtending": false,
-											"left": 95,
+											"left": 93,
 											"top": 416,
-											"width": 105.4599609375,
+											"width": 108,
 											"height": 13,
 											"autoResize": false,
 											"alpha": 0.9097522925595711,
@@ -3204,7 +3204,7 @@
 							"_parent": {
 								"$ref": "AAAAAAFfxkDv4oOKY7I="
 							},
-							"name": "LoginSignupManager",
+							"name": "Register Manager",
 							"visibility": "public",
 							"represent": {
 								"$ref": "AAAAAAFfxkkxboPdFWc="
